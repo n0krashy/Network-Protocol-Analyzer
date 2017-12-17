@@ -5,7 +5,11 @@
  */
 package networkProtocolAnalyzer;
 
+import java.util.*;
+import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
+import static networkProtocolAnalyzer.StartPanel.errbuf;
+import org.jnetpcap.*;
 
 /**
  *
@@ -13,12 +17,28 @@ import javax.swing.table.DefaultTableModel;
  */
 public class MainPanel extends javax.swing.JPanel {
 
-    
     /**
      * Creates new form MainPanel
      */
     public MainPanel() {
+        startDevice();
         initComponents();
+    }
+
+    public void startDevice() {
+        int snaplen = 64 * 1024;           // Capture all packets, no trucation  
+        int flags = Pcap.MODE_PROMISCUOUS; // capture all packets  
+        int timeout = 10 * 1000;           // 10 seconds in millis  
+        Pcap pcap
+                = Pcap.openLive(StartPanel.device.getName(), snaplen, flags, timeout, StartPanel.errbuf);
+
+        if (pcap == null) {
+            JOptionPane.showMessageDialog(null,
+                    "Error while opening device for capture: " + errbuf.toString(),
+                    "Device opening Error",
+                    JOptionPane.ERROR_MESSAGE);
+            return;
+        }
     }
 
     /**
@@ -34,6 +54,8 @@ public class MainPanel extends javax.swing.JPanel {
         saveButton = new javax.swing.JButton();
         jScrollPane2 = new javax.swing.JScrollPane();
         packetsTable = new javax.swing.JTable();
+        jScrollPane1 = new javax.swing.JScrollPane();
+        jList1 = new javax.swing.JList<>();
 
         startStopButton.setText("Start");
         startStopButton.addActionListener(new java.awt.event.ActionListener() {
@@ -62,34 +84,35 @@ public class MainPanel extends javax.swing.JPanel {
         });
         jScrollPane2.setViewportView(packetsTable);
 
+        jScrollPane1.setViewportView(jList1);
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 756, Short.MAX_VALUE)
-            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                .addGroup(layout.createSequentialGroup()
-                    .addContainerGap()
-                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 744, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGroup(layout.createSequentialGroup()
-                            .addComponent(startStopButton)
-                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                            .addComponent(saveButton)))
-                    .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                    .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 744, Short.MAX_VALUE)
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(startStopButton)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(saveButton))
+                    .addComponent(jScrollPane1))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 518, Short.MAX_VALUE)
-            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                .addGroup(layout.createSequentialGroup()
-                    .addContainerGap()
-                    .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                        .addComponent(startStopButton)
-                        .addComponent(saveButton))
-                    .addGap(57, 57, 57)
-                    .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(startStopButton)
+                    .addComponent(saveButton))
+                .addGap(57, 57, 57)
+                .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jScrollPane1)
+                .addContainerGap())
         );
     }// </editor-fold>//GEN-END:initComponents
 
@@ -98,16 +121,17 @@ public class MainPanel extends javax.swing.JPanel {
             startStopButton.setText("Stop");
             DefaultTableModel dtm = (DefaultTableModel) packetsTable.getModel();
             dtm.addRow(new Object[]{});
-            dtm.addRow(new Object[]{2,"fawzy"});
+            dtm.addRow(new Object[]{2, "fawzy"});
         } else {
             startStopButton.setText("Start");
         }
         packetsTable.setValueAt("7mada", 0, 1);
-
     }//GEN-LAST:event_startStopButtonActionPerformed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JList<String> jList1;
+    private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JTable packetsTable;
     private javax.swing.JButton saveButton;
