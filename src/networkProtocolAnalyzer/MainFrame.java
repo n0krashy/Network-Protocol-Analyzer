@@ -11,12 +11,12 @@ package networkProtocolAnalyzer;
  */
 public class MainFrame extends javax.swing.JFrame {
 
-    static StartPanel startPanel;
+    MainPanel mainPanel;
     
     public MainFrame() {
-        startPanel = new StartPanel();
+        mainPanel = new MainPanel();
+        this.add(mainPanel);
         initComponents();
-        jPanel1.add(startPanel);
     }
 
     /**
@@ -28,15 +28,8 @@ public class MainFrame extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jPanel1 = new javax.swing.JPanel();
-
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-        setMinimumSize(new java.awt.Dimension(800, 800));
-        setPreferredSize(new java.awt.Dimension(500, 500));
-        setSize(new java.awt.Dimension(800, 800));
-
-        jPanel1.setLayout(new java.awt.GridBagLayout());
-        getContentPane().add(jPanel1, java.awt.BorderLayout.CENTER);
+        getContentPane().setLayout(new java.awt.GridBagLayout());
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -77,6 +70,5 @@ public class MainFrame extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    public static javax.swing.JPanel jPanel1;
     // End of variables declaration//GEN-END:variables
 }
