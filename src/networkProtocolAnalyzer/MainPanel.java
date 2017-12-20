@@ -5,11 +5,16 @@
  */
 package networkProtocolAnalyzer;
 
-import java.util.*;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
 import static networkProtocolAnalyzer.StartPanel.errbuf;
-import org.jnetpcap.*;
+import java.util.Date;
+import org.jnetpcap.Pcap;
+import org.jnetpcap.PcapDumper;
+import org.jnetpcap.packet.PcapPacket;
+import org.jnetpcap.packet.PcapPacketHandler;
+import org.jnetpcap.protocol.network.Ip4;
+import org.jnetpcap.protocol.tcpip.Tcp;
 
 /**
  *
@@ -20,16 +25,21 @@ public class MainPanel extends javax.swing.JPanel {
     /**
      * Creates new form MainPanel
      */
+    Pcap pcap;
+    PcapPacketHandler<String> jpacketHandler;
+    DefaultTableModel dtm;
+    PcapDumper dumper;
+
     public MainPanel() {
-        startDevice();
         initComponents();
+        startDevice();
     }
 
     public void startDevice() {
         int snaplen = 64 * 1024;           // Capture all packets, no trucation  
         int flags = Pcap.MODE_PROMISCUOUS; // capture all packets  
         int timeout = 10 * 1000;           // 10 seconds in millis  
-        Pcap pcap
+        pcap
                 = Pcap.openLive(StartPanel.device.getName(), snaplen, flags, timeout, StartPanel.errbuf);
 
         if (pcap == null) {
@@ -39,6 +49,67 @@ public class MainPanel extends javax.swing.JPanel {
                     JOptionPane.ERROR_MESSAGE);
             return;
         }
+
+        //String ofile = "tmp-capture-file.cap";
+        //dumper = pcap.dumpOpen(ofile);
+        dtm = (DefaultTableModel) packetsTable.getModel();
+        jpacketHandler = new PcapPacketHandler<String>() {
+            int i = 1;
+            Tcp tcp = new Tcp();
+            Ip4 ip = new Ip4();
+            byte[] sIP = new byte[4];
+            byte[] dIP = new byte[4];
+            String sourceIP;
+            String destIP;
+            String protocol;
+
+            public void nextPacket(PcapPacket packet, String user) {
+                if (packet.hasHeader(ip)) {
+                    // get Source IP address
+                    sIP = packet.getHeader(ip).source();
+                    sourceIP = org.jnetpcap.packet.format.FormatUtils.ip(sIP);
+
+                    // get destination IP address
+                    dIP = packet.getHeader(ip).destination();
+                    destIP = org.jnetpcap.packet.format.FormatUtils.ip(dIP);
+
+                    if (packet.hasHeader(tcp)) {
+                        if (tcp.source() == 80) {
+                            protocol = "HTTP";
+                        } else if (tcp.source() == 23) {
+                            protocol = "Telnet";
+                        }
+                    } else {
+                        protocol = "";
+                    }
+                    // add GUI row in packets table
+                    dtm.addRow(new Object[]{i, new Date(packet.getCaptureHeader().timestampInMillis()), sourceIP, destIP, protocol, packet.getCaptureHeader().caplen(), ""});
+                    i++;
+
+                }
+                //dumper.dump(packet);
+            }
+
+        };
+    }
+
+    public void deviceController(boolean startCapture) {
+        if (startCapture == true) {
+            Thread t = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    pcap.loop(Pcap.LOOP_INFINITE, jpacketHandler, "");
+                }
+            });
+            t.start();
+            startStopButton.setText("Stop");
+        } else {
+            pcap.breakloop();
+            //dumper.close();
+            pcap.close();
+            startStopButton.setText("Start");
+        }
+
     }
 
     /**
@@ -118,14 +189,11 @@ public class MainPanel extends javax.swing.JPanel {
 
     private void startStopButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_startStopButtonActionPerformed
         if (startStopButton.getText().equalsIgnoreCase("Start")) {
-            startStopButton.setText("Stop");
-            DefaultTableModel dtm = (DefaultTableModel) packetsTable.getModel();
-            dtm.addRow(new Object[]{});
-            dtm.addRow(new Object[]{2, "fawzy"});
+            deviceController(true);
         } else {
-            startStopButton.setText("Start");
+            deviceController(false);
         }
-        packetsTable.setValueAt("7mada", 0, 1);
+
     }//GEN-LAST:event_startStopButtonActionPerformed
 
 

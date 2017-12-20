@@ -7,7 +7,6 @@ package networkProtocolAnalyzer;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.swing.JButton;
 import javax.swing.JOptionPane;
 import org.jnetpcap.Pcap;
 import org.jnetpcap.PcapIf;
@@ -38,7 +37,7 @@ public class StartPanel extends javax.swing.JPanel {
          */
         try {
             int r = Pcap.findAllDevs(alldevs, errbuf);
-            if (r == Pcap.NOT_OK || alldevs.isEmpty()) {
+            if (r != Pcap.OK || alldevs.isEmpty()) {
                 JOptionPane.showMessageDialog(null,
                         "Can't read list of devices" + errbuf.toString(),
                         "Reading Error",
