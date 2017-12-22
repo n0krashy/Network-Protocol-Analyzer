@@ -5,6 +5,8 @@
  */
 package networkProtocolAnalyzer;
 
+import org.jnetpcap.PcapClosedException;
+
 /**
  *
  * @author n0krashy
@@ -31,6 +33,7 @@ public class MainFrame extends javax.swing.JFrame {
         jPanel1 = new javax.swing.JPanel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setTitle("Packet Sniffer");
         setMinimumSize(new java.awt.Dimension(770, 740));
         setPreferredSize(new java.awt.Dimension(700, 750));
         setSize(new java.awt.Dimension(700, 750));
@@ -51,7 +54,10 @@ public class MainFrame extends javax.swing.JFrame {
             //close pcap & dumper on program termination
             //then delete packets-temporary-file if exists
             startPanel.mainPanel.dumper.close();
-            startPanel.mainPanel.livePcap.close();
+            try {
+                startPanel.mainPanel.livePcap.close();
+            } catch (PcapClosedException e) {
+            }
             if (startPanel.mainPanel.file.exists()) {
                 startPanel.mainPanel.file.delete(); // Cleanup
             }

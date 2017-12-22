@@ -30,7 +30,6 @@ import javax.swing.filechooser.FileNameExtensionFilter;
  * @author n0krashy
  */
 public class MainPanel extends javax.swing.JPanel {
-
     int i;
     Pcap livePcap;
     Pcap offlinePcap;
@@ -171,6 +170,7 @@ public class MainPanel extends javax.swing.JPanel {
 
     private void save(String filePath) {
         dumper.close(); // Won't be able to delete without explicit close
+        livePcap.close();
         file.renameTo(new File(filePath));
         saveButton.setEnabled(false);
     }
