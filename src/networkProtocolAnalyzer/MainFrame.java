@@ -12,7 +12,7 @@ package networkProtocolAnalyzer;
 public class MainFrame extends javax.swing.JFrame {
 
     static StartPanel startPanel;
-    
+
     public MainFrame() {
         startPanel = new StartPanel();
         initComponents();
@@ -34,12 +34,30 @@ public class MainFrame extends javax.swing.JFrame {
         setMinimumSize(new java.awt.Dimension(770, 740));
         setPreferredSize(new java.awt.Dimension(700, 750));
         setSize(new java.awt.Dimension(700, 750));
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            public void windowClosing(java.awt.event.WindowEvent evt) {
+                formWindowClosing(evt);
+            }
+        });
 
         jPanel1.setLayout(new java.awt.GridBagLayout());
         getContentPane().add(jPanel1, java.awt.BorderLayout.CENTER);
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
+
+    private void formWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosing
+        try {
+            //close pcap & dumper on program termination
+            //then delete packets-temporary-file if exists
+            startPanel.mainPanel.dumper.close();
+            startPanel.mainPanel.livePcap.close();
+            if (startPanel.mainPanel.file.exists()) {
+                startPanel.mainPanel.file.delete(); // Cleanup
+            }
+        } catch (NullPointerException e) {
+        }
+    }//GEN-LAST:event_formWindowClosing
 
     /**
      * @param args the command line arguments

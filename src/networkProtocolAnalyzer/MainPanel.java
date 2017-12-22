@@ -55,6 +55,7 @@ public class MainPanel extends javax.swing.JPanel {
     String protocol;
     FileFilter filter;
     String tempFile;
+    File file;
 
     public MainPanel() {
         packets = new ArrayList<>();
@@ -155,6 +156,7 @@ public class MainPanel extends javax.swing.JPanel {
         int timeout = 10 * 1000;           // 10 seconds in millis  
         livePcap = Pcap.openLive(StartPanel.device.getName(), snaplen, flags, timeout, StartPanel.errbuf);
         dumper = livePcap.dumpOpen(tempFile);
+        file = new File(tempFile);
 
         if (livePcap == null) {
             JOptionPane.showMessageDialog(null,
@@ -166,9 +168,9 @@ public class MainPanel extends javax.swing.JPanel {
     }
 
     public void save(String filePath) {
-        File file = new File(tempFile);
         dumper.close(); // Won't be able to delete without explicit close
         file.renameTo(new File(filePath));
+        saveButton.setEnabled(false);
     }
 
     public void load(String fileName) {
