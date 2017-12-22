@@ -10,7 +10,6 @@ import java.util.List;
 import javax.swing.JOptionPane;
 import org.jnetpcap.Pcap;
 import org.jnetpcap.PcapIf;
-
 /**
  *
  * @author Nokrashy
@@ -27,7 +26,7 @@ public class StartPanel extends javax.swing.JPanel {
      */
     public StartPanel() {
         initComponents();
-        alldevs = new ArrayList<PcapIf>(); // Will be filled with NICs  
+        alldevs = new ArrayList<>(); // Will be filled with NICs  
         errbuf = new StringBuilder(); // For any error msgs  
 
         /**
@@ -39,10 +38,10 @@ public class StartPanel extends javax.swing.JPanel {
             int r = Pcap.findAllDevs(alldevs, errbuf);
             if (r != Pcap.OK || alldevs.isEmpty()) {
                 JOptionPane.showMessageDialog(null,
-                        "Can't read list of devices" + errbuf.toString(),
+                        "Can't read list of devices, make sure that you are using Windows operating system & have jnetpcap.dll file in 'C:\\Windows\\System32' directory." + errbuf.toString(),
                         "Reading Error",
                         JOptionPane.ERROR_MESSAGE);
-                return;
+                System.exit(1);
             }
 
             int i = 0;
@@ -59,9 +58,10 @@ public class StartPanel extends javax.swing.JPanel {
             }
         } catch (Exception e) {
             JOptionPane.showMessageDialog(null,
-                    "Can't read list of devices.",
+                    "Can't read list of devices, make sure that you are using Windows operating system & have jnetpcap.dll file in 'C:\\Windows\\System32' directory.",
                     "Reading Error",
                     JOptionPane.ERROR_MESSAGE);
+            System.exit(1);
         }
     }
 
@@ -80,14 +80,14 @@ public class StartPanel extends javax.swing.JPanel {
 
         jLabel1.setText("Choose your device");
 
-        jButton1.setText("jButton1");
+        jButton1.setText("Device1");
         jButton1.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButton1ActionPerformed(evt);
             }
         });
 
-        jButton2.setText("Heeeeeeeeeeeeeeeeeeeeeeeey");
+        jButton2.setText("Device2");
         jButton2.setAlignmentX(0.5F);
         jButton2.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         jButton2.addActionListener(new java.awt.event.ActionListener() {
@@ -101,27 +101,27 @@ public class StartPanel extends javax.swing.JPanel {
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addGap(121, 121, 121)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jButton2)
                     .addGroup(layout.createSequentialGroup()
-                        .addGap(55, 55, 55)
-                        .addComponent(jLabel1))
+                        .addContainerGap()
+                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                            .addComponent(jButton2, javax.swing.GroupLayout.DEFAULT_SIZE, 286, Short.MAX_VALUE)
+                            .addComponent(jButton1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
                     .addGroup(layout.createSequentialGroup()
-                        .addGap(71, 71, 71)
-                        .addComponent(jButton1)))
-                .addContainerGap(121, Short.MAX_VALUE))
+                        .addGap(92, 92, 92)
+                        .addComponent(jLabel1)))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addGap(110, 110, 110)
+                .addGap(24, 24, 24)
                 .addComponent(jLabel1)
-                .addGap(81, 81, 81)
+                .addGap(61, 61, 61)
                 .addComponent(jButton1)
-                .addGap(28, 28, 28)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(jButton2)
-                .addContainerGap(141, Short.MAX_VALUE))
+                .addContainerGap(33, Short.MAX_VALUE))
         );
     }// </editor-fold>//GEN-END:initComponents
 
