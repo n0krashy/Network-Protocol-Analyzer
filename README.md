@@ -3,7 +3,7 @@
 You must have jnetpcap.dll file in 'C:\\Windows\\System32' directory.
 
 ## Device select menu
-![](https://imgur.com/eg7R5uf.png)
+![](https://i.imgur.com/eg7R5uf.png?2)
 
 ## Packets Panel
 ![](https://imgur.com/Oftcf0T.png)
