@@ -24,20 +24,18 @@ import org.jnetpcap.protocol.tcpip.Tcp;
 import org.jnetpcap.protocol.tcpip.Udp;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileNameExtensionFilter;
- 
+
 /**
  *
  * @author n0krashy
  */
 public class MainPanel extends javax.swing.JPanel {
 
-    /**
-     * Creates new form MainPanel
-     */
     int i;
     Pcap livePcap;
     Pcap offlinePcap;
     ArrayList<PcapPacket> packets;
+    ArrayList<PcapPacket> filteredPackets;
     PcapPacketHandler<String> jpacketHandler;
     DefaultTableModel dtm;
     PcapDumper dumper;
@@ -53,13 +51,16 @@ public class MainPanel extends javax.swing.JPanel {
     String sourceIP;
     String destIP;
     String protocol;
-    FileFilter filter;
+    FileFilter fileTypeFilter;
     String tempFile;
     File file;
+    String captureFilter;
 
     public MainPanel() {
         packets = new ArrayList<>();
-        filter = new FileNameExtensionFilter("pcap", "pcap");
+        filteredPackets = new ArrayList<>();
+        captureFilter = "";
+        fileTypeFilter = new FileNameExtensionFilter("pcap", "pcap");
         tcp = new Tcp();
         udp = new Udp();
         ip4 = new Ip4();
@@ -71,78 +72,79 @@ public class MainPanel extends javax.swing.JPanel {
         dIP = new byte[4];
         tempFile = "tmp-capture-file.pcap";
         initComponents();
-        saveFileBox.setFileFilter(filter);
-        loadFileBox.setFileFilter(filter);
+        saveFileBox.setFileFilter(fileTypeFilter);
+        loadFileBox.setFileFilter(fileTypeFilter);
         dtm = (DefaultTableModel) packetsTable.getModel();
     }
 
-    public void getPackets() {
+    private void getPacketInformation(PcapPacket packet) {
+        protocol = "";
+        // get Source & destination IP addresses
+        if (packet.hasHeader(ip4) || (packet.hasHeader(ip4) && packet.hasHeader(icmp))) {
+            sIP = packet.getHeader(ip4).source();
+            dIP = packet.getHeader(ip4).destination();
+        } else if (packet.hasHeader(ip6) || (packet.hasHeader(ip6) && packet.hasHeader(icmp))) {
+            sIP = packet.getHeader(ip6).source();
+            dIP = packet.getHeader(ip6).destination();
+        } // get source & destination MAC addresses
+        else if (packet.hasHeader(ethernet) || packet.hasHeader(arp)) {
+            sIP = packet.getHeader(ethernet).source();
+            dIP = packet.getHeader(ethernet).destination();
+        }
+
+        if (packet.hasHeader(arp)) {
+            protocol = "ARP";
+        } else if (packet.hasHeader(icmp)) {
+            protocol = "ICMP";
+        } else if (packet.hasHeader(tcp)) {
+            protocol = "TCP";
+        } else if (packet.hasHeader(udp)) {
+            protocol = "UDP";
+        }
+
+        if ((packet.hasHeader(tcp) && tcp.source() == 80) || (packet.hasHeader(udp) && udp.source() == 80)) {
+            protocol = "HTTP";
+        } else if ((packet.hasHeader(tcp) && tcp.source() == 23) || (packet.hasHeader(udp) && udp.source() == 23)) {
+            protocol = "Telnet";
+        } else if ((packet.hasHeader(tcp) && tcp.source() == 21) || (packet.hasHeader(udp) && udp.source() == 21) || (packet.hasHeader(tcp) && tcp.source() == 20) || (packet.hasHeader(udp) && udp.source() == 20)) {
+            protocol = "FTP";
+        } else if ((packet.hasHeader(tcp) && tcp.source() == 7) || (packet.hasHeader(udp) && udp.source() == 7)) {
+            protocol = "ECHO";
+        } else if ((packet.hasHeader(tcp) && tcp.source() == 33) || (packet.hasHeader(udp) && udp.source() == 33)) {
+            protocol = "DSP";
+        } else if ((packet.hasHeader(tcp) && tcp.source() == 53) || (packet.hasHeader(udp) && udp.source() == 53)) {
+            protocol = "DNS";
+        } else if ((packet.hasHeader(tcp) && tcp.source() == 5355) || (packet.hasHeader(udp) && udp.source() == 5355)) {
+            protocol = "LLMNR";
+        } else if ((packet.hasHeader(tcp) && tcp.source() == 1900) || (packet.hasHeader(udp) && udp.source() == 1900)) {
+            protocol = "SSDP";
+        } else if ((packet.hasHeader(tcp) && tcp.source() == 465) || (packet.hasHeader(udp) && udp.source() == 465)) {
+            protocol = "IGMPv3";
+        } else if ((packet.hasHeader(tcp) && tcp.source() == 546) || (packet.hasHeader(udp) && udp.source() == 546) || (packet.hasHeader(tcp) && tcp.source() == 547) || (packet.hasHeader(udp) && udp.source() == 547)) {
+            protocol = "DHCP";
+        } else if ((packet.hasHeader(tcp) && tcp.source() == 25) || (packet.hasHeader(udp) && udp.source() == 25)) {
+            protocol = "SMTP";
+        } else if ((packet.hasHeader(tcp) && tcp.source() == 22) || (packet.hasHeader(udp) && udp.source() == 22)) {
+            protocol = "SSH";
+        }
+
+        sourceIP = org.jnetpcap.packet.format.FormatUtils.mac(sIP);
+        destIP = org.jnetpcap.packet.format.FormatUtils.mac(dIP);
+        if (packet.hasHeader(ip4) || packet.hasHeader(ip6) || packet.hasHeader(icmp)) {
+            sourceIP = org.jnetpcap.packet.format.FormatUtils.ip(sIP);
+            destIP = org.jnetpcap.packet.format.FormatUtils.ip(dIP);
+        }
+    }
+
+    private void getPackets() {
         jpacketHandler = new PcapPacketHandler<String>() {
-            int i = 1;
-
             public void nextPacket(PcapPacket packet, String user) {
-                protocol = "";
-                // get Source & destination IP addresses
-                if (packet.hasHeader(ip4) || (packet.hasHeader(ip4) && packet.hasHeader(icmp))) {
-                    sIP = packet.getHeader(ip4).source();
-                    dIP = packet.getHeader(ip4).destination();
-                } else if (packet.hasHeader(ip6) || (packet.hasHeader(ip6) && packet.hasHeader(icmp))) {
-                    sIP = packet.getHeader(ip6).source();
-                    dIP = packet.getHeader(ip6).destination();
-                } // get source & destination MAC addresses
-                else if (packet.hasHeader(ethernet) || packet.hasHeader(arp)) {
-                    sIP = packet.getHeader(ethernet).source();
-                    dIP = packet.getHeader(ethernet).destination();
-                }
-
-                if (packet.hasHeader(arp)) {
-                    protocol = "ARP";
-                } else if (packet.hasHeader(icmp)) {
-                    protocol = "ICMP";
-                } else if (packet.hasHeader(tcp)) {
-                    protocol = "TCP";
-                } else if (packet.hasHeader(udp)) {
-                    protocol = "UDP";
-                }
-
-                if ((packet.hasHeader(tcp) && tcp.source() == 80) || (packet.hasHeader(udp) && udp.source() == 80)) {
-                    protocol = "HTTP";
-                } else if ((packet.hasHeader(tcp) && tcp.source() == 23) || (packet.hasHeader(udp) && udp.source() == 23)) {
-                    protocol = "Telnet";
-                } else if ((packet.hasHeader(tcp) && tcp.source() == 21) || (packet.hasHeader(udp) && udp.source() == 21) || (packet.hasHeader(tcp) && tcp.source() == 20) || (packet.hasHeader(udp) && udp.source() == 20)) {
-                    protocol = "FTP";
-                } else if ((packet.hasHeader(tcp) && tcp.source() == 7) || (packet.hasHeader(udp) && udp.source() == 7)) {
-                    protocol = "ECHO";
-                } else if ((packet.hasHeader(tcp) && tcp.source() == 33) || (packet.hasHeader(udp) && udp.source() == 33)) {
-                    protocol = "DSP";
-                } else if ((packet.hasHeader(tcp) && tcp.source() == 53) || (packet.hasHeader(udp) && udp.source() == 53)) {
-                    protocol = "DNS";
-                } else if ((packet.hasHeader(tcp) && tcp.source() == 5355) || (packet.hasHeader(udp) && udp.source() == 5355)) {
-                    protocol = "LLMNR";
-                } else if ((packet.hasHeader(tcp) && tcp.source() == 1900) || (packet.hasHeader(udp) && udp.source() == 1900)) {
-                    protocol = "SSDP";
-                } else if ((packet.hasHeader(tcp) && tcp.source() == 465) || (packet.hasHeader(udp) && udp.source() == 465)) {
-                    protocol = "IGMPv3";
-                } else if ((packet.hasHeader(tcp) && tcp.source() == 546) || (packet.hasHeader(udp) && udp.source() == 546) || (packet.hasHeader(tcp) && tcp.source() == 547) || (packet.hasHeader(udp) && udp.source() == 547)) {
-                    protocol = "DHCP";
-                } else if ((packet.hasHeader(tcp) && tcp.source() == 25) || (packet.hasHeader(udp) && udp.source() == 25)) {
-                    protocol = "SMTP";
-                } else if ((packet.hasHeader(tcp) && tcp.source() == 22) || (packet.hasHeader(udp) && udp.source() == 22)) {
-                    protocol = "SSH";
-                }
-
-                sourceIP = org.jnetpcap.packet.format.FormatUtils.mac(sIP);
-                destIP = org.jnetpcap.packet.format.FormatUtils.mac(dIP);
-                if (packet.hasHeader(ip4) || packet.hasHeader(ip6) || packet.hasHeader(icmp)) {
-                    sourceIP = org.jnetpcap.packet.format.FormatUtils.ip(sIP);
-                    destIP = org.jnetpcap.packet.format.FormatUtils.ip(dIP);
-                }
-
+                getPacketInformation(packet);
                 if (protocol != "") {
                     // add GUI row in packets table
                     packets.add(packet);
-                    dtm.addRow(new Object[]{i, new Date(packet.getCaptureHeader().timestampInMillis()), sourceIP, destIP, protocol, packet.getCaptureHeader().caplen()});
-                    i++;
+                    filteredPackets.add(packet);
+                    tableFilter(captureFilter, packet);
                 }
                 dumper.dump(packet);
             }
@@ -150,7 +152,7 @@ public class MainPanel extends javax.swing.JPanel {
         };
     }
 
-    public void startDevice() {
+    private void startDevice() {
         int snaplen = 64 * 1024;           // Capture all packets, no trucation  
         int flags = Pcap.MODE_PROMISCUOUS; // capture all packets  
         int timeout = 10 * 1000;           // 10 seconds in millis  
@@ -167,13 +169,13 @@ public class MainPanel extends javax.swing.JPanel {
         }
     }
 
-    public void save(String filePath) {
+    private void save(String filePath) {
         dumper.close(); // Won't be able to delete without explicit close
         file.renameTo(new File(filePath));
         saveButton.setEnabled(false);
     }
 
-    public void load(String fileName) {
+    private void load(String fileName) {
         final StringBuilder errbuf = new StringBuilder(); // For any error msgs  
         offlinePcap = Pcap.openOffline(fileName, errbuf);
         if (offlinePcap == null) {
@@ -181,22 +183,26 @@ public class MainPanel extends javax.swing.JPanel {
                     + errbuf.toString());
             return;
         }
-        reset();
+        reset(true);
         getPackets();
         offlinePcap.loop(Pcap.LOOP_INFINITE, jpacketHandler, "");
         offlinePcap.close();
     }
 
-    public void reset() {
+    private void reset(boolean clearPackets) {
         dtm.setRowCount(0);
         packetBytesTextArea.setText("");
         packetDetailsTextArea.setText("");
-        packets.clear();
+        i = 1;
+        filteredPackets.clear();
+        if (clearPackets) {
+            packets.clear();
+        }
     }
 
-    public void deviceController(boolean startCapture) {
+    private void deviceController(boolean startCapture) {
         if (startCapture == true) {
-            reset();
+            reset(true);
             startDevice();
             getPackets();
             Thread t = new Thread(new Runnable() {
@@ -215,6 +221,44 @@ public class MainPanel extends javax.swing.JPanel {
             livePcap.breakloop();
             startStopButton.setText("Start");
         }
+    }
+    
+    public void tableFilter(String filter, PcapPacket packet){
+        if (filter.equals("")) {
+                dtm.addRow(new Object[]{i, new Date(packet.getCaptureHeader().timestampInMillis()), sourceIP, destIP, protocol, packet.getCaptureHeader().caplen()});
+                filteredPackets.add(packet);
+            } else if (filter.equalsIgnoreCase("arp") && packet.hasHeader(arp)) {
+                dtm.addRow(new Object[]{i, new Date(packet.getCaptureHeader().timestampInMillis()), sourceIP, destIP, protocol, packet.getCaptureHeader().caplen()});
+                filteredPackets.add(packet);
+            } else if (filter.equalsIgnoreCase("tcp") && packet.hasHeader(tcp)) {
+                dtm.addRow(new Object[]{i, new Date(packet.getCaptureHeader().timestampInMillis()), sourceIP, destIP, protocol, packet.getCaptureHeader().caplen()});
+                filteredPackets.add(packet);
+            } else if (filter.equalsIgnoreCase("udp") && packet.hasHeader(udp)) {
+                dtm.addRow(new Object[]{i, new Date(packet.getCaptureHeader().timestampInMillis()), sourceIP, destIP, protocol, packet.getCaptureHeader().caplen()});
+                filteredPackets.add(packet);
+            } else if (filter.equalsIgnoreCase("icmp") && packet.hasHeader(icmp)) {
+                dtm.addRow(new Object[]{i, new Date(packet.getCaptureHeader().timestampInMillis()), sourceIP, destIP, protocol, packet.getCaptureHeader().caplen()});
+                filteredPackets.add(packet);
+            } else if (filter.equalsIgnoreCase("ip4") && packet.hasHeader(ip4)) {
+                dtm.addRow(new Object[]{i, new Date(packet.getCaptureHeader().timestampInMillis()), sourceIP, destIP, protocol, packet.getCaptureHeader().caplen()});
+                filteredPackets.add(packet);
+            } else if (filter.equalsIgnoreCase("ip6") && packet.hasHeader(ip6)) {
+                dtm.addRow(new Object[]{i, new Date(packet.getCaptureHeader().timestampInMillis()), sourceIP, destIP, protocol, packet.getCaptureHeader().caplen()});
+                filteredPackets.add(packet);
+            } else if (filter.equalsIgnoreCase("ethernet") && packet.hasHeader(ethernet)) {
+                dtm.addRow(new Object[]{i, new Date(packet.getCaptureHeader().timestampInMillis()), sourceIP, destIP, protocol, packet.getCaptureHeader().caplen()});
+                filteredPackets.add(packet);
+            }
+            i++;
+    }
+
+    private void filterPackets(String filter) {
+        reset(false);
+        for (PcapPacket packet : packets) {
+            getPacketInformation(packet);
+            tableFilter(filter, packet);
+        }
+        captureFilter = filter;
     }
 
     /**
@@ -298,6 +342,11 @@ public class MainPanel extends javax.swing.JPanel {
                 filterFieldMouseClicked(evt);
             }
         });
+        filterField.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                filterFieldKeyPressed(evt);
+            }
+        });
 
         packetDetailsTextArea.setEditable(false);
         packetDetailsTextArea.setColumns(20);
@@ -370,7 +419,7 @@ public class MainPanel extends javax.swing.JPanel {
     }//GEN-LAST:event_startStopButtonActionPerformed
 
     private void packetsTableMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_packetsTableMouseClicked
-        PcapPacket packet = packets.get(packetsTable.getSelectedRow());
+        PcapPacket packet = filteredPackets.get(packetsTable.getSelectedRow());
         packetDetailsTextArea.setText(packet.toString());
         packetBytesTextArea.setText(packet.toHexdump());
     }//GEN-LAST:event_packetsTableMouseClicked
@@ -380,7 +429,7 @@ public class MainPanel extends javax.swing.JPanel {
     }//GEN-LAST:event_filterFieldMouseClicked
 
     private void filterButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_filterButtonActionPerformed
-        // TODO add your handling code here:
+        filterPackets(filterField.getText());
     }//GEN-LAST:event_filterButtonActionPerformed
 
     private void saveButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_saveButtonActionPerformed
@@ -391,7 +440,7 @@ public class MainPanel extends javax.swing.JPanel {
             save(filePath);
         } catch (NullPointerException e) {
         }
-        saveFileBox.setFileFilter(filter);
+        saveFileBox.setFileFilter(fileTypeFilter);
     }//GEN-LAST:event_saveButtonActionPerformed
 
     private void loadButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_loadButtonActionPerformed
@@ -402,6 +451,12 @@ public class MainPanel extends javax.swing.JPanel {
         } catch (NullPointerException e) {
         }
     }//GEN-LAST:event_loadButtonActionPerformed
+
+    private void filterFieldKeyPressed(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_filterFieldKeyPressed
+        if (evt.getKeyCode() == 10) {
+            filterPackets(filterField.getText());
+        }
+    }//GEN-LAST:event_filterFieldKeyPressed
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
