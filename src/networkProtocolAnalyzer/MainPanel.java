@@ -19,6 +19,7 @@ import org.jnetpcap.protocol.network.Ip4;
 import org.jnetpcap.protocol.network.Ip6;
 import org.jnetpcap.protocol.network.Arp;
 import org.jnetpcap.protocol.network.Icmp;
+import org.jnetpcap.protocol.tcpip.Http;
 import org.jnetpcap.protocol.lan.Ethernet;
 import org.jnetpcap.protocol.tcpip.Tcp;
 import org.jnetpcap.protocol.tcpip.Udp;
@@ -30,6 +31,7 @@ import javax.swing.filechooser.FileNameExtensionFilter;
  * @author n0krashy
  */
 public class MainPanel extends javax.swing.JPanel {
+
     int i;
     Pcap livePcap;
     Pcap offlinePcap;
@@ -42,6 +44,7 @@ public class MainPanel extends javax.swing.JPanel {
     Udp udp;
     Ip4 ip4;
     Ip6 ip6;
+    Http http;
     Ethernet ethernet;
     Arp arp;
     Icmp icmp;
@@ -60,6 +63,7 @@ public class MainPanel extends javax.swing.JPanel {
         filteredPackets = new ArrayList<>();
         captureFilter = "";
         fileTypeFilter = new FileNameExtensionFilter("pcap", "pcap");
+        http = new Http();
         tcp = new Tcp();
         udp = new Udp();
         ip4 = new Ip4();
@@ -78,6 +82,12 @@ public class MainPanel extends javax.swing.JPanel {
 
     private void getPacketInformation(PcapPacket packet) {
         protocol = "";
+        // get source & destination MAC addresses
+        if (packet.hasHeader(ethernet)) {
+            sIP = packet.getHeader(ethernet).source();
+            dIP = packet.getHeader(ethernet).destination();
+        }
+
         // get Source & destination IP addresses
         if (packet.hasHeader(ip4) || (packet.hasHeader(ip4) && packet.hasHeader(icmp))) {
             sIP = packet.getHeader(ip4).source();
@@ -85,10 +95,6 @@ public class MainPanel extends javax.swing.JPanel {
         } else if (packet.hasHeader(ip6) || (packet.hasHeader(ip6) && packet.hasHeader(icmp))) {
             sIP = packet.getHeader(ip6).source();
             dIP = packet.getHeader(ip6).destination();
-        } // get source & destination MAC addresses
-        else if (packet.hasHeader(ethernet) || packet.hasHeader(arp)) {
-            sIP = packet.getHeader(ethernet).source();
-            dIP = packet.getHeader(ethernet).destination();
         }
 
         if (packet.hasHeader(arp)) {
@@ -101,7 +107,7 @@ public class MainPanel extends javax.swing.JPanel {
             protocol = "UDP";
         }
 
-        if ((packet.hasHeader(tcp) && tcp.source() == 80) || (packet.hasHeader(udp) && udp.source() == 80)) {
+        if (packet.hasHeader(http)) {
             protocol = "HTTP";
         } else if ((packet.hasHeader(tcp) && tcp.source() == 23) || (packet.hasHeader(udp) && udp.source() == 23)) {
             protocol = "Telnet";
@@ -126,9 +132,12 @@ public class MainPanel extends javax.swing.JPanel {
         } else if ((packet.hasHeader(tcp) && tcp.source() == 22) || (packet.hasHeader(udp) && udp.source() == 22)) {
             protocol = "SSH";
         }
-
+        
+        //set source & dest IP equal to MAC address
         sourceIP = org.jnetpcap.packet.format.FormatUtils.mac(sIP);
         destIP = org.jnetpcap.packet.format.FormatUtils.mac(dIP);
+        
+        //if protocol is ip4 or ip6 or imcp it will have IP address so set source & dest. equal to
         if (packet.hasHeader(ip4) || packet.hasHeader(ip6) || packet.hasHeader(icmp)) {
             sourceIP = org.jnetpcap.packet.format.FormatUtils.ip(sIP);
             destIP = org.jnetpcap.packet.format.FormatUtils.ip(dIP);
@@ -222,34 +231,37 @@ public class MainPanel extends javax.swing.JPanel {
             startStopButton.setText("Start");
         }
     }
-    
-    public void tableFilter(String filter, PcapPacket packet){
+
+    public void tableFilter(String filter, PcapPacket packet) {
         if (filter.equals("")) {
-                dtm.addRow(new Object[]{i, new Date(packet.getCaptureHeader().timestampInMillis()), sourceIP, destIP, protocol, packet.getCaptureHeader().caplen()});
-                filteredPackets.add(packet);
-            } else if (filter.equalsIgnoreCase("arp") && packet.hasHeader(arp)) {
-                dtm.addRow(new Object[]{i, new Date(packet.getCaptureHeader().timestampInMillis()), sourceIP, destIP, protocol, packet.getCaptureHeader().caplen()});
-                filteredPackets.add(packet);
-            } else if (filter.equalsIgnoreCase("tcp") && packet.hasHeader(tcp)) {
-                dtm.addRow(new Object[]{i, new Date(packet.getCaptureHeader().timestampInMillis()), sourceIP, destIP, protocol, packet.getCaptureHeader().caplen()});
-                filteredPackets.add(packet);
-            } else if (filter.equalsIgnoreCase("udp") && packet.hasHeader(udp)) {
-                dtm.addRow(new Object[]{i, new Date(packet.getCaptureHeader().timestampInMillis()), sourceIP, destIP, protocol, packet.getCaptureHeader().caplen()});
-                filteredPackets.add(packet);
-            } else if (filter.equalsIgnoreCase("icmp") && packet.hasHeader(icmp)) {
-                dtm.addRow(new Object[]{i, new Date(packet.getCaptureHeader().timestampInMillis()), sourceIP, destIP, protocol, packet.getCaptureHeader().caplen()});
-                filteredPackets.add(packet);
-            } else if (filter.equalsIgnoreCase("ip4") && packet.hasHeader(ip4)) {
-                dtm.addRow(new Object[]{i, new Date(packet.getCaptureHeader().timestampInMillis()), sourceIP, destIP, protocol, packet.getCaptureHeader().caplen()});
-                filteredPackets.add(packet);
-            } else if (filter.equalsIgnoreCase("ip6") && packet.hasHeader(ip6)) {
-                dtm.addRow(new Object[]{i, new Date(packet.getCaptureHeader().timestampInMillis()), sourceIP, destIP, protocol, packet.getCaptureHeader().caplen()});
-                filteredPackets.add(packet);
-            } else if (filter.equalsIgnoreCase("ethernet") && packet.hasHeader(ethernet)) {
-                dtm.addRow(new Object[]{i, new Date(packet.getCaptureHeader().timestampInMillis()), sourceIP, destIP, protocol, packet.getCaptureHeader().caplen()});
-                filteredPackets.add(packet);
-            }
-            i++;
+            dtm.addRow(new Object[]{i, new Date(packet.getCaptureHeader().timestampInMillis()), sourceIP, destIP, protocol, packet.getCaptureHeader().caplen()});
+            filteredPackets.add(packet);
+        } else if (filter.equalsIgnoreCase("arp") && packet.hasHeader(arp)) {
+            dtm.addRow(new Object[]{i, new Date(packet.getCaptureHeader().timestampInMillis()), sourceIP, destIP, protocol, packet.getCaptureHeader().caplen()});
+            filteredPackets.add(packet);
+        } else if (filter.equalsIgnoreCase("tcp") && packet.hasHeader(tcp)) {
+            dtm.addRow(new Object[]{i, new Date(packet.getCaptureHeader().timestampInMillis()), sourceIP, destIP, protocol, packet.getCaptureHeader().caplen()});
+            filteredPackets.add(packet);
+        } else if (filter.equalsIgnoreCase("udp") && packet.hasHeader(udp)) {
+            dtm.addRow(new Object[]{i, new Date(packet.getCaptureHeader().timestampInMillis()), sourceIP, destIP, protocol, packet.getCaptureHeader().caplen()});
+            filteredPackets.add(packet);
+        } else if (filter.equalsIgnoreCase("icmp") && packet.hasHeader(icmp)) {
+            dtm.addRow(new Object[]{i, new Date(packet.getCaptureHeader().timestampInMillis()), sourceIP, destIP, protocol, packet.getCaptureHeader().caplen()});
+            filteredPackets.add(packet);
+        } else if (filter.equalsIgnoreCase("ip4") && packet.hasHeader(ip4)) {
+            dtm.addRow(new Object[]{i, new Date(packet.getCaptureHeader().timestampInMillis()), sourceIP, destIP, protocol, packet.getCaptureHeader().caplen()});
+            filteredPackets.add(packet);
+        } else if (filter.equalsIgnoreCase("ip6") && packet.hasHeader(ip6)) {
+            dtm.addRow(new Object[]{i, new Date(packet.getCaptureHeader().timestampInMillis()), sourceIP, destIP, protocol, packet.getCaptureHeader().caplen()});
+            filteredPackets.add(packet);
+        } else if (filter.equalsIgnoreCase("ethernet") && packet.hasHeader(ethernet)) {
+            dtm.addRow(new Object[]{i, new Date(packet.getCaptureHeader().timestampInMillis()), sourceIP, destIP, protocol, packet.getCaptureHeader().caplen()});
+            filteredPackets.add(packet);
+        } else if (filter.equalsIgnoreCase("HTTP") && packet.hasHeader(http)) {
+            dtm.addRow(new Object[]{i, new Date(packet.getCaptureHeader().timestampInMillis()), sourceIP, destIP, protocol, packet.getCaptureHeader().caplen()});
+            filteredPackets.add(packet);
+        }
+        i++;
     }
 
     private void filterPackets(String filter) {
